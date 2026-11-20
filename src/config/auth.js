@@ -14,10 +14,29 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        type: ["customer", "vendor", "admin"],
+        type: ["customer", "vendor"],
         required: false,
         defaultValue: "customer",
         input: false,
+      },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          const requestedRole = ctx?.body?.role;
+
+          const role = requestedRole === "vendor" ? "vendor" : "customer";
+
+          return {
+            data: {
+              ...user,
+              role,
+            },
+          };
+        },
       },
     },
   },
