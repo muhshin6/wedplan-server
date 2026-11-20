@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@better-auth/mongo-adapter": "^1.7.27",
     "better-auth": "^1.7.27",
     "cors": "^2.8.6",
     "dotenv": "^18.0.10",
