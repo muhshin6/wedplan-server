@@ -8,6 +8,9 @@ export function authorizeRoles(...allowedRoles) {
       });
     }
 
+    console.log("User role:", req.user.role);
+    console.log("Allowed roles:", allowedRoles);
+
     // Check user role
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({

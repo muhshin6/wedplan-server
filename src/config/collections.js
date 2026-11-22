@@ -15,6 +15,7 @@ export async function getCollections() {
   const database = await getDB();
 
   return {
+    users: database.collection("user"),
     services: database.collection("services"),
     bookings: database.collection("bookings"),
     transactions: database.collection("transactions"),
