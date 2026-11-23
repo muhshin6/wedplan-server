@@ -55,14 +55,14 @@ IMGBB_API_KEY=<imgbb-api-key>
 
 ## Google OAuth setup
 
-Register these redirect URIs on the **same** OAuth client in Google Cloud Console:
+Register these redirect URIs on the **same** OAuth client in Google Cloud Console. They point at the **client** domain because all `/api/*` traffic is proxied there by the client's Next.js rewrite — Google's callback must return through the same proxy so the session and OAuth-state cookies land on the client origin:
 
 ```
-http://localhost:5000/api/auth/callback/google
-https://<your-deployed-server>/api/auth/callback/google
+http://localhost:3000/api/auth/callback/google
+https://wedplan-client-psi.vercel.app/api/auth/callback/google
 ```
 
-Set `BETTER_AUTH_URL` to the matching server origin for each environment.
+`baseURL` is derived from `CLIENT_URL` (with `BETTER_AUTH_URL` as fallback). Set `CLIENT_URL` to the matching **client** origin for each environment. Keep `BETTER_AUTH_URL` set to the server origin.
 
 ## Stripe webhook setup
 

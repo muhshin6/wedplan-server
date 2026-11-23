@@ -4,6 +4,14 @@ import { client } from "./db.js";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { jwt } from "better-auth/plugins/jwt";
 
+// The client proxies every /api/* call to this server, so the browser only
+// ever talks to the client origin. Better Auth derives the OAuth redirect_uri
+// (and other public URLs) from baseURL — it must be the CLIENT url, otherwise
+// Google returns the user straight to the backend domain and the session /
+// OAuth-state cookies never reach the client.
+const publicBaseURL =
+  process.env.CLIENT_URL?.replace(/\/$/, "") || process.env.BETTER_AUTH_URL
+
 export const auth = betterAuth({
   plugins: [jwt()],
 
@@ -13,7 +21,7 @@ export const auth = betterAuth({
 
   secret: process.env.BETTER_AUTH_SECRET,
 
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: publicBaseURL,
 
   advanced: {
     defaultCookieAttributes: {
