@@ -21,7 +21,16 @@ npm run dev      # node --watch src/index.js
 
 ### Environment variables
 
-Create `.env` in the project root (gitignored — never commit it):
+Create `.env` in the project root (gitignored — never commit it). For **local development**, also create a gitignored `.env.local` that overrides the deployment URLs so auth cookies match the local origin:
+
+```env
+BETTER_AUTH_URL=http://localhost:5000
+CLIENT_URL=http://localhost:3000
+```
+
+The server loads `.env.local` with priority over `.env` (see `src/index.js` / `src/config/db.js`). Without this, sign-in may return success but the session cookie will be scoped to the deployed domain and the user will appear logged out locally.
+
+Full `.env` template (deployment values):
 
 ```env
 PORT=5000

@@ -1,6 +1,12 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
+// Local overrides (gitignored) take precedence over production .env values.
+import fs from "node:fs";
+if (fs.existsSync(".env.local")) {
+  const dotenv = await import("dotenv");
+  dotenv.config({ path: ".env.local", override: true });
+}
 import { connectToMongoDB } from "./config/db.js";
 import healthRoutes from "./routes/health.routes.js";
 import serviceRoutes from "./routes/service.routes.js";
