@@ -16,9 +16,15 @@ import paymentWebhookRoutes from "./routes/payment-webhook.routes.js";
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://wedplan-client-psi.vercel.app",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", process.env.CLIENT_URL],
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
