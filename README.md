@@ -36,8 +36,8 @@ CLIENT_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=<from-google-cloud-console>
 GOOGLE_CLIENT_SECRET=<from-google-cloud-console>
 
-STRIPE_SECRET_KEY=<sk_test_...>
-STRIPE_WEBHOOK_SECRET=<whsec_...>
+STRIPE_SECRET_KEY=<stripe-secret-key>
+STRIPE_WEBHOOK_SECRET=<stripe-webhook-signing-secret>
 
 IMGBB_API_KEY=<imgbb-api-key>
 ```
@@ -63,7 +63,7 @@ Local development:
 stripe listen --forward-to localhost:5000/api/payment/webhook
 ```
 
-Copy the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET` and **restart the server** (`.env` is read at startup).
+Copy the printed webhook signing secret into `STRIPE_WEBHOOK_SECRET` and **restart the server** (`.env` is read at startup).
 
 Production: add a webhook endpoint in the Stripe Dashboard pointing to:
 
