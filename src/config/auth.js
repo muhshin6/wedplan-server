@@ -15,6 +15,13 @@ export const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL,
 
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
+  },
+
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:5000",
