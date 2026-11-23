@@ -61,7 +61,9 @@ export async function createCheckoutSession(req, res, next) {
           plan: selectedPlan.id,
         },
       },
-      success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      // Go straight to the subscription page after checkout. The page polls
+      // the verified status and shows the purchased plan as current.
+      success_url: `${clientUrl}/vendor/dashboard/subscription?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${clientUrl}/payment/cancel`,
     });
 
@@ -127,7 +129,7 @@ export async function handleStripeWebhook(req, res, next) {
           plan: selectedPlan.id,
           planName: selectedPlan.name,
           amount: selectedPlan.price,
-          currency: "bdt",
+          currency: "BDT",
           status: "success",
           stripeSessionId: session.id,
           stripeSubscriptionId: session.subscription || null,
@@ -216,6 +218,26 @@ export async function getPaymentStatus(req, res, next) {
       success: true,
       status: "success",
       data: transaction,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Vendor's own billing/transaction history (read-only)
+export async function getMyTransactions(req, res, next) {
+  try {
+    const { transactions } = await getCollections();
+
+    const records = await transactions
+      .find({ vendorId: req.user.id })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return res.status(200).json({
+      success: true,
+      message: "Billing history retrieved successfully.",
+      data: records,
     });
   } catch (error) {
     next(error);

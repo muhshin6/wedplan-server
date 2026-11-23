@@ -5,21 +5,53 @@ import { getCollections } from "../config/collections.js";
 
 export const authenticate = async (req, res, next) => {
   try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
+    let userId;
+    let session = null;
 
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please login first.",
+    const authHeader = req.headers.authorization || "";
+
+    if (authHeader.startsWith("Bearer ")) {
+      // JWT flow — verify signature/expiry on the server. The user id comes
+      // from the verified token payload, never from the request body.
+      const token = authHeader.slice(7).trim();
+
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized. Missing token.",
+        });
+      }
+
+      const verified = await auth.api.verifyJWT({ body: { token } });
+      const payload = verified?.payload || verified?.data?.payload;
+
+      if (!payload?.sub) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized. Invalid or expired token.",
+        });
+      }
+
+      userId = payload.sub;
+    } else {
+      // Cookie session flow (existing client behaviour)
+      session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
       });
+
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized. Please login first.",
+        });
+      }
+
+      userId = session.user.id;
     }
 
     // Always read the live user record so a block applied by an admin
-    // takes effect immediately, even with an existing session cookie.
+    // takes effect immediately, and roles/ids are never trusted from client.
     const { users } = await getCollections();
-    const userId = session.user.id;
 
     const userDoc = await users.findOne({
       $or: [
@@ -42,8 +74,8 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    req.user = { ...session.user, ...userDoc };
-    req.session = session.session;
+    req.user = { ...(session?.user || {}), ...userDoc, id: userId };
+    req.session = session?.session || null;
 
     next();
   } catch (error) {

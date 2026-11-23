@@ -1,3 +1,8 @@
+// Convenience guards for each role — used with authenticate() beforehand.
+export const requireAdmin = () => authorizeRoles("admin");
+export const requireVendor = () => authorizeRoles("vendor");
+export const requireCustomer = () => authorizeRoles("customer");
+
 export function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
     // Check authentication

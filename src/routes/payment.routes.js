@@ -5,6 +5,7 @@ import {
   createCheckoutSession,
   getPaymentStatus,
   cancelSubscription,
+  getMyTransactions,
 } from "../controllers/payment.controller.js";
 
 const router = express.Router();
@@ -19,6 +20,9 @@ router.post(
 
 // Read-only payment status for the success page
 router.get("/status", authenticate, getPaymentStatus);
+
+// Vendor's own billing history (read-only)
+router.get("/my-transactions", authenticate, authorizeRoles("vendor"), getMyTransactions);
 
 // Vendor cancels their own subscription
 router.post(

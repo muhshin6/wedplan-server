@@ -2,8 +2,11 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { client } from "./db.js";
 import { createAuthMiddleware, APIError } from "better-auth/api";
+import { jwt } from "better-auth/plugins/jwt";
 
 export const auth = betterAuth({
+  plugins: [jwt()],
+
   database: mongodbAdapter(client.db(process.env.DB_NAME), {
     client,
   }),
