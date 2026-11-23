@@ -21,16 +21,34 @@ import paymentWebhookRoutes from "./routes/payment-webhook.routes.js";
 
 const app = express();
 
-// Middleware
-const allowedOrigins = [
+// Middleware — allow the configured client, localhost, and any Vercel
+// preview/production subdomain of the project.
+const configuredOrigins = [
   "http://localhost:3000",
-  "https://wedplan-client-psi.vercel.app",
-  process.env.CLIENT_URL,
+  process.env.CLIENT_URL?.replace(/\/$/, ""),
 ].filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (configuredOrigins.includes(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    return url.hostname.endsWith(".vercel.app") || url.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || isAllowedOrigin(origin)) {
+        callback(null, origin || true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
