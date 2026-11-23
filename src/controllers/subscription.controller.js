@@ -4,6 +4,7 @@ export const SUBSCRIPTION_PLANS = {
   free: {
     id: "free",
     name: "Free",
+    price: 0,
     maxActiveServices: 3,
     hasPremiumBadge: false,
     features: [
@@ -15,6 +16,7 @@ export const SUBSCRIPTION_PLANS = {
   basic: {
     id: "basic",
     name: "Basic",
+    price: 1900,
     maxActiveServices: 10,
     hasPremiumBadge: false,
     features: [
@@ -27,6 +29,7 @@ export const SUBSCRIPTION_PLANS = {
   premium: {
     id: "premium",
     name: "Premium",
+    price: 4900,
     maxActiveServices: null,
     hasPremiumBadge: true,
     features: [
@@ -64,7 +67,7 @@ export async function upgradeSubscription(req, res, next) {
     }
 
     const { ObjectId } = await import("mongodb");
-    const { users } = await getCollections();
+    const { users, transactions } = await getCollections();
 
     // The MongoDB adapter may store _id as either an ObjectId or a string.
     const userFilter = ObjectId.isValid(req.user.id)
@@ -82,6 +85,24 @@ export async function upgradeSubscription(req, res, next) {
       return res.status(404).json({
         success: false,
         message: "User not found.",
+      });
+    }
+
+    // Paid upgrades create an append-only transaction record.
+    // Status is set by the server — admins cannot edit payment records.
+    const selectedPlan = SUBSCRIPTION_PLANS[plan];
+
+    if (selectedPlan.price > 0) {
+      await transactions.insertOne({
+        vendorId: req.user.id,
+        vendorName: req.user.name,
+        vendorEmail: req.user.email,
+        plan: selectedPlan.id,
+        planName: selectedPlan.name,
+        amount: selectedPlan.price,
+        currency: "BDT",
+        status: "success",
+        createdAt: new Date(),
       });
     }
 

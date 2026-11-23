@@ -250,7 +250,7 @@ export async function getServiceById(req, res, next) {
       });
     }
 
-    const { services } = await getCollections();
+    const { services, users } = await getCollections();
 
     const service = await services.findOne({
       _id: new ObjectId(id),
@@ -261,14 +261,30 @@ export async function getServiceById(req, res, next) {
     if (!service) {
       return res.status(404).json({
         success: false,
-        message: "Service not found.",
+        message: "Service not found or no longer available.",
       });
     }
+
+    // Attach vendor information
+    const vendorId = String(service.vendorId);
+    const vendor = ObjectId.isValid(vendorId)
+      ? await users.findOne({
+          $or: [
+            { _id: new ObjectId(vendorId) },
+            { _id: vendorId },
+          ],
+        })
+      : await users.findOne({ _id: vendorId });
 
     return res.status(200).json({
       success: true,
       message: "Service retrieved successfully.",
-      data: service,
+      data: {
+        ...service,
+        vendor: vendor
+          ? { name: vendor.name, businessName: vendor.businessName }
+          : null,
+      },
     });
   } catch (error) {
     next(error);
@@ -278,7 +294,8 @@ export async function getServiceById(req, res, next) {
 // Public Services
 export async function getPublicServices(req, res, next) {
   try {
-    const { services } = await getCollections();
+    const { ObjectId } = await import("mongodb");
+    const { services, users } = await getCollections();
 
     const allServices = await services
       .find({
@@ -288,10 +305,39 @@ export async function getPublicServices(req, res, next) {
       .sort({ createdAt: -1 })
       .toArray();
 
+    // Attach vendor information for the service cards
+    const vendorIds = [
+      ...new Set(allServices.map((service) => String(service.vendorId))),
+    ].filter(Boolean);
+
+    const objectIds = vendorIds
+      .filter((id) => ObjectId.isValid(id))
+      .map((id) => new ObjectId(id));
+
+    const vendorDocs = vendorIds.length
+      ? await users
+          .find({
+            $or: [{ _id: { $in: objectIds } }, { _id: { $in: vendorIds } }],
+          })
+          .toArray()
+      : [];
+
+    const vendorMap = new Map(
+      vendorDocs.map((vendor) => [
+        String(vendor._id),
+        { name: vendor.name, businessName: vendor.businessName },
+      ])
+    );
+
+    const enrichedServices = allServices.map((service) => ({
+      ...service,
+      vendor: vendorMap.get(String(service.vendorId)) || null,
+    }));
+
     res.status(200).json({
       success: true,
       message: "Services retrieved successfully.",
-      data: allServices,
+      data: enrichedServices,
     });
   } catch (error) {
     next(error);
@@ -365,3 +411,85 @@ export async function updateServiceStatus(req, res, next) {
     next(error);
   }
 }
+// Admin - Get All Services (any status)
+export async function getAllServices(req, res, next) {
+  try {
+    const { ObjectId } = await import("mongodb");
+    const { services, users } = await getCollections();
+
+    const allServices = await services
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const vendorIds = [
+      ...new Set(allServices.map((service) => String(service.vendorId))),
+    ].filter(Boolean);
+
+    const objectIds = vendorIds
+      .filter((id) => ObjectId.isValid(id))
+      .map((id) => new ObjectId(id));
+
+    const vendorDocs = vendorIds.length
+      ? await users
+          .find({
+            $or: [{ _id: { $in: objectIds } }, { _id: { $in: vendorIds } }],
+          })
+          .toArray()
+      : [];
+
+    const vendorMap = new Map(
+      vendorDocs.map((vendor) => [
+        String(vendor._id),
+        { name: vendor.name, businessName: vendor.businessName },
+      ])
+    );
+
+    const enriched = allServices.map((service) => ({
+      ...service,
+      vendor: vendorMap.get(String(service.vendorId)) || null,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "All services retrieved successfully.",
+      data: enriched,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Admin - Delete any service (including inappropriate published ones)
+export async function deleteServiceAdmin(req, res, next) {
+  try {
+    const { ObjectId } = await import("mongodb");
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service ID.",
+      });
+    }
+
+    const { services } = await getCollections();
+
+    const result = await services.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Service deleted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+

@@ -11,6 +11,8 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./config/auth.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import paymentWebhookRoutes from "./routes/payment-webhook.routes.js";
 
 const app = express();
 
@@ -25,6 +27,9 @@ app.use(
 // Better Auth Handler
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
+// Stripe webhook needs the raw request body for signature verification.
+app.use("/api/payment", paymentWebhookRoutes);
+
 app.use(express.json());
 
 // Routes
@@ -35,6 +40,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Test API
 app.get("/", (req, res) => {

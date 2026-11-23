@@ -27,6 +27,57 @@ export async function postBooking(req, res, next) {
       });
     }
 
+    // Only approved and active services can be booked
+    if (!ObjectId.isValid(serviceId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid service ID.",
+      });
+    }
+
+    const { services } = await getCollections();
+    const serviceDoc = await services.findOne({
+      _id: new ObjectId(serviceId),
+    });
+
+    if (
+      !serviceDoc ||
+      serviceDoc.status !== "approved" ||
+      serviceDoc.isActive !== true
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "This service is not available for booking.",
+      });
+    }
+
+    // A vendor cannot book their own service
+    if (String(serviceDoc.vendorId) === req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot book your own service.",
+      });
+    }
+
+    // Prevent duplicate active requests for the same service and date
+    const { bookings } = await getCollections();
+    const normalizedDate = new Date(eventDate).toISOString().slice(0, 10);
+
+    const existingBooking = await bookings.findOne({
+      serviceId,
+      customerId: req.user.id,
+      status: { $in: ["pending", "accepted"] },
+      eventDate: { $regex: `^${normalizedDate}` },
+    });
+
+    if (existingBooking) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "You already have an active booking request for this service on that date.",
+      });
+    }
+
     const booking = await createBooking({
       serviceId,
       vendorId,
@@ -77,10 +128,10 @@ export async function updateVendorBookingStatus(req, res, next) {
       });
     }
 
-    if (!["confirmed", "rejected"].includes(status)) {
+    if (!["accepted", "rejected"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be confirmed or rejected.",
+        message: "Status must be accepted or rejected.",
       });
     }
 

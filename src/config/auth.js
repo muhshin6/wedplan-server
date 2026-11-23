@@ -33,11 +33,35 @@ export const auth = betterAuth({
         defaultValue: "free",
         input: false,
       },
+      isBlocked: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      // Blocked users cannot sign in at all
+      if (ctx.path === "/sign-in/email") {
+        const email = ctx.body?.email;
+
+        if (typeof email === "string") {
+          const users = client.db(process.env.DB_NAME).collection("user");
+          const user = await users.findOne({ email });
+
+          if (user?.isBlocked === true) {
+            throw new APIError("FORBIDDEN", {
+              message: "Your account has been blocked. Please contact support.",
+            });
+          }
+        }
+
+        return;
+      }
+
       if (ctx.path !== "/sign-up/email") {
         return;
       }
@@ -82,4 +106,15 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 6,
   },
+
+  // Enabled only when Google OAuth credentials are configured.
+  socialProviders:
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : undefined,
 });

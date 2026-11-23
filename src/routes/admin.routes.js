@@ -5,6 +5,8 @@ import {
   getAdminStats,
   getRecentBookings,
   getAllUsers,
+  setUserBlocked,
+  getTransactions,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -27,4 +29,21 @@ router.get(
   authorizeRoles("admin"),
   getAllUsers
 );
+
+// Admin - Platform transactions (read-only, no modification endpoint)
+router.get(
+  "/transactions",
+  authenticate,
+  authorizeRoles("admin"),
+  getTransactions
+);
+
+// Admin - Block or unblock a user (server-side role verified)
+router.patch(
+  "/users/:id/block",
+  authenticate,
+  authorizeRoles("admin"),
+  setUserBlocked
+);
+
 export default router;

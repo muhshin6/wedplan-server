@@ -11,6 +11,8 @@ import {
   getPendingServices,
   updateService,
   updateServiceStatus,
+  getAllServices,
+  deleteServiceAdmin,
 } from "../controllers/service.controller.js";
 
 const router = express.Router();
@@ -27,6 +29,22 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   getPendingServices,
+);
+
+// Admin - Get All Submitted Services
+router.get(
+  "/admin/all",
+  authenticate,
+  authorizeRoles("admin"),
+  getAllServices,
+);
+
+// Admin - Delete an inappropriate service
+router.delete(
+  "/admin/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  deleteServiceAdmin,
 );
 
 // Admin - Approve or Reject Service
