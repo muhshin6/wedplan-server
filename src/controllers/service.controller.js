@@ -377,10 +377,10 @@ export async function updateServiceStatus(req, res, next) {
       });
     }
 
-    if (!["approved", "rejected"].includes(status)) {
+    if (!["pending", "approved", "rejected"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be approved or rejected.",
+        message: "Status must be pending, approved or rejected.",
       });
     }
 
