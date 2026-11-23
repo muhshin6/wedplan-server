@@ -231,14 +231,30 @@ export async function cancelSubscription(req, res, next) {
     const vendor = await users.findOne(userFilter(req.user.id));
 
     if (!vendor?.stripeSubscriptionId) {
-      return res.status(400).json({
-        success: false,
-        message: "No active subscription to cancel.",
+      // No provider-side subscription (e.g. demo/test data) — a downgrade to
+      // Free is still safe because it does not grant any paid entitlement.
+      await users.updateOne(userFilter(req.user.id), {
+        $set: {
+          plan: "free",
+          subscriptionStatus: "canceled",
+          updatedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Switched to the Free plan.",
       });
     }
 
     if (stripe) {
-      await stripe.subscriptions.cancel(vendor.stripeSubscriptionId);
+      try {
+        await stripe.subscriptions.cancel(vendor.stripeSubscriptionId);
+      } catch (stripeError) {
+        // Even if the provider-side cancel fails (e.g. stale test data), the
+        // local downgrade must still succeed — it grants nothing.
+        console.error("Stripe cancel failed:", stripeError.message);
+      }
     }
 
     await users.updateOne(userFilter(req.user.id), {
